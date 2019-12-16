@@ -26,7 +26,7 @@ import (
 	"context"
 	"strings"
 
-	xhr github.com/rocketlaunchr/gopherjs-xhr
+	xhr "github.com/rocketlaunchr/gopherjs-xhr"
 )
 
 req := xhr.NewRequest("POST", reqURL)
