@@ -27,6 +27,7 @@ import (
 	"strings"
 
 	xhr "github.com/rocketlaunchr/gopherjs-xhr"
+	"github.com/gopherjs/gopherjs/js"
 )
 
 req := xhr.NewRequest("POST", reqURL)
@@ -35,7 +36,7 @@ req.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded")
 
 
 postBody := NewParams()
-postBody.Append("setting", 4)
+postBody.Append(js.M{"setting": 4})
 
 err := req.Send(context.Background(), postBody.String())
 if err != nil {
