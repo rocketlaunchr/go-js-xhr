@@ -16,8 +16,10 @@ func NewParams() *Params {
 }
 
 // Appends a specified key/value pair as a new search parameter.
-func (p *Params) Append(name string, val interface{}) {
-	p.Call("append", name, val)
+func (p *Params) Append(kv js.M) {
+	for name, val := range kv {
+		p.Call("append", name, val)
+	}
 }
 
 // String returns a string containing a query string suitable for use in a URL.
