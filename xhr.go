@@ -9,9 +9,8 @@
 // to register additional event listeners.
 //
 //   req := xhr.NewRequest("GET", "/endpoint")
-//   req.Timeout = 1000 // one second, in milliseconds
 //   req.ResponseType = "document"
-//   err := req.Send(nil)
+//   err := req.Send(ctx, nil)
 //   if err != nil { handle_error() }
 //   // req.Response will contain a JavaScript Document element that can
 //   // for example be used with the js/dom package.
@@ -22,7 +21,7 @@
 // it. It's the easiest way of doing an XHR request that should just
 // return unprocessed data.
 //
-//     data, err := xhr.Send("POST", "/endpoint", []byte("payload here"))
+//     data, err := xhr.Send(ctx, "POST", "/endpoint", []byte("payload here"))
 //     if err != nil { handle_error() }
 //     console.Log("Retrieved data", data)
 //
@@ -31,10 +30,12 @@
 // XHR, you may also just use the net/http.DefaultTransport, which
 // GopherJS replaces with an XHR-enabled version, making this package
 // useless most of the time.
-package xhr // import "honnef.co/go/js/xhr"
+package xhr
 
 import (
+	"context"
 	"errors"
+	"time"
 
 	"github.com/gopherjs/gopherjs/js"
 	"honnef.co/go/js/util"
@@ -60,6 +61,22 @@ const (
 	Text        = "text"
 )
 
+const (
+	// ApplicationForm is a common "Content-Type" used by forms.
+	ApplicationForm = "application/x-www-form-urlencoded"
+	// ApplicationJSON is a common "Content-Type" used when making a POST request.
+	ApplicationJSON = "application/json"
+	// TextPlain is a common "Content-Type".
+	TextPlain = "text/plain"
+)
+
+var (
+	// MultipartFormData is a common "Content-Type" when transferring files in a POST request.
+	MultipartFormData = func(boundary string) string {
+		return "multipart/form-data;boundary=\"" + boundary + "\""
+	}
+)
+
 // Request wraps XMLHttpRequest objects. New instances have to be
 // created with NewRequest. Each instance may only be used for a
 // single request.
@@ -70,7 +87,7 @@ const (
 //
 //   req := xhr.NewRequest("POST", "http://example.com")
 //   req.ResponseType = xhr.ArrayBuffer
-//   req.Send([]byte("data"))
+//   req.Send(ctx, []byte("data"))
 //   b := js.Global.Get("Uint8Array").New(req.Response).Interface().([]byte)
 type Request struct {
 	*js.Object
@@ -82,10 +99,9 @@ type Request struct {
 	ResponseXML     *js.Object `js:"responseXML"`
 	Status          int        `js:"status"`
 	StatusText      string     `js:"statusText"`
-	Timeout         int        `js:"timeout"`
 	WithCredentials bool       `js:"withCredentials"`
 
-	ch chan error
+	alreadySent bool // Indicate that send has been called
 }
 
 // Upload wraps XMLHttpRequestUpload objects.
@@ -101,13 +117,6 @@ func (r *Request) Upload() *Upload {
 	o := r.Get("upload")
 	return &Upload{o, util.EventTarget{Object: o}}
 }
-
-// ErrAborted is the error returned by Send when a request was
-// aborted.
-var ErrAborted = errors.New("request aborted")
-
-// ErrTimeout is the error returned by Send when a request timed out.
-var ErrTimeout = errors.New("request timed out")
 
 // ErrFailure is the error returned by Send when it failed for a
 // reason other than abortion or timeouts.
@@ -140,23 +149,33 @@ func (r *Request) ResponseHeader(name string) string {
 	return value.String()
 }
 
-// Abort will abort the request. The corresponding Send will return
-// ErrAborted, unless the request has already succeeded.
-func (r *Request) Abort() {
-	if r.ch == nil {
-		return
-	}
-
-	r.Call("abort")
-	select {
-	case r.ch <- ErrAborted:
-	default:
-	}
-}
-
 // OverrideMimeType overrides the MIME type returned by the server.
 func (r *Request) OverrideMimeType(mimetype string) {
 	r.Call("overrideMimeType", mimetype)
+}
+
+// Status2xx returns true if the request returned a 2xx status code.
+func (r *Request) Status2xx() bool {
+	if r.Status < 200 || req.Status > 299 {
+		return false
+	}
+	return true
+}
+
+// Status4xx returns true if the request returned a 4xx status code.
+func (r *Request) Status4xx() bool {
+	if r.Status < 400 || req.Status > 499 {
+		return false
+	}
+	return true
+}
+
+// Status5xx returns true if the request returned a 5xx status code.
+func (r *Request) Status5xx() bool {
+	if r.Status < 500 || req.Status > 599 {
+		return false
+	}
+	return true
 }
 
 // Send sends the request that was prepared with Open. The data
@@ -169,24 +188,47 @@ func (r *Request) OverrideMimeType(mimetype string) {
 // Only errors of the network layer are treated as errors. HTTP status
 // codes 4xx and 5xx are not treated as errors. In order to check
 // status codes, use the Request's Status field.
-func (r *Request) Send(data interface{}) error {
-	if r.ch != nil {
+func (r *Request) Send(ctx context.Context, data interface{}) error {
+
+	if r.alreadySent {
 		panic("must not use a Request for multiple requests")
 	}
-	r.ch = make(chan error, 1)
+
+	if dt, ok := ctx.Deadline(); ok {
+		diff := time.Until(dt) / time.Millisecond
+		r.Set("timeout", diff)
+	}
+
+	errChan := make(chan error)
+	returnedChan := make(chan struct{}) // Used to indicate that this function has returned
+
+	defer func() {
+		r.alreadySent = true
+		returnedChan <- struct{}{}
+	}()
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			r.Call("abort")
+			errChan <- ctx.Err()
+		case <-returnedChan:
+		}
+	}()
+
 	r.AddEventListener("load", false, func(*js.Object) {
-		go func() { r.ch <- nil }()
+		go func() { errChan <- nil }()
 	})
-	r.AddEventListener("error", false, func(o *js.Object) {
-		go func() { r.ch <- ErrFailure }()
+	r.AddEventListener("error", false, func(err *js.Object) {
+		go func() { errChan <- ErrFailure }()
 	})
 	r.AddEventListener("timeout", false, func(*js.Object) {
-		go func() { r.ch <- ErrTimeout }()
+		go func() { errChan <- context.DeadlineExceeded }()
 	})
 
 	r.Call("send", data)
-	val := <-r.ch
-	return val
+
+	return <-errChan
 }
 
 // SetRequestHeader sets a header of the request.
@@ -203,10 +245,10 @@ func (r *Request) SetRequestHeader(header, value string) {
 // Only errors of the network layer are treated as errors. HTTP status
 // codes 4xx and 5xx are not treated as errors. In order to check
 // status codes, use NewRequest instead.
-func Send(method, url string, data []byte) ([]byte, error) {
+func Send(ctx context.Context, method, url string, data []byte) ([]byte, error) {
 	xhr := NewRequest(method, url)
 	xhr.ResponseType = ArrayBuffer
-	err := xhr.Send(data)
+	err := xhr.Send(ctx, data)
 	if err != nil {
 		return nil, err
 	}
