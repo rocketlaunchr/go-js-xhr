@@ -15,7 +15,6 @@ Install npm package `xhr2`
 ```javascript 
 File: imports.inc.js
 
-// polyfill to allow net/http to work with node.js
 global.XMLHttpRequest = require('xhr2'); 
 ```
 
@@ -33,11 +32,10 @@ import (
 
 req := xhr.NewRequest("POST", reqURL)
 req.ResponseType = xhr.Text // Returns response as string
-req.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded")
+req.SetRequestHeader("Content-Type", xhr.ApplicationForm)
 
 
-postBody := NewParams()
-postBody.Append(js.M{"setting": 4})
+postBody := NewParams(js.M{"setting": 4})
 
 err := req.Send(context.Background(), postBody.String())
 if err != nil {
@@ -50,7 +48,7 @@ if err != nil {
 	return
 }
 
-if !req.Status2xx() {
+if !req.IsStatus2xx() {
 	// Something went wrong
 	return
 }

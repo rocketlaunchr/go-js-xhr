@@ -159,24 +159,24 @@ func (r *Request) ResponseBytes() []byte {
 	return []byte(r.ResponseText)
 }
 
-// Status2xx returns true if the request returned a 2xx status code.
-func (r *Request) Status2xx() bool {
+// IsStatus2xx returns true if the request returned a 2xx status code.
+func (r *Request) IsStatus2xx() bool {
 	if r.Status < 200 || r.Status > 299 {
 		return false
 	}
 	return true
 }
 
-// Status4xx returns true if the request returned a 4xx status code.
-func (r *Request) Status4xx() bool {
+// IsStatus4xx returns true if the request returned a 4xx status code.
+func (r *Request) IsStatus4xx() bool {
 	if r.Status < 400 || r.Status > 499 {
 		return false
 	}
 	return true
 }
 
-// Status5xx returns true if the request returned a 5xx status code.
-func (r *Request) Status5xx() bool {
+// IsStatus5xx returns true if the request returned a 5xx status code.
+func (r *Request) IsStatus5xx() bool {
 	if r.Status < 500 || r.Status > 599 {
 		return false
 	}
@@ -226,7 +226,7 @@ func (r *Request) Send(ctx context.Context, data interface{}) error {
 	r.AddEventListener("load", false, func(*js.Object) {
 		go func() { errChan <- nil }()
 	})
-	r.AddEventListener("error", false, func(err *js.Object) {
+	r.AddEventListener("error", false, func(*js.Object) {
 		go func() { errChan <- ErrFailure }()
 	})
 	r.AddEventListener("timeout", false, func(*js.Object) {
