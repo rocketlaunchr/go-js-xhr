@@ -10,9 +10,13 @@ type Params struct {
 }
 
 // NewParams returns a new URLSearchParams object.
-func NewParams() *Params {
+func NewParams(kv ...js.M) *Params {
 	o := js.Global.Get("URLSearchParams").New()
-	return &Params{Object: o}
+	p := &Params{Object: o}
+	if len(kv) > 0 {
+		p.Append(kv[0])
+	}
+	return p
 }
 
 // Appends a specified key/value pair as a new search parameter.
