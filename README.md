@@ -28,6 +28,7 @@ import (
 
 	xhr "github.com/rocketlaunchr/gopherjs-xhr"
 	"github.com/gopherjs/gopherjs/js"
+	"github.com/rocketlaunchr/react/forks/encoding/json"
 )
 
 req := xhr.NewRequest("POST", reqURL)
@@ -57,6 +58,7 @@ if !req.Status2xx() {
 data := []byte(req.ResponseText)
 
 // Unmarshal json response here using encoding/json. Otherwise set req.ResponseType = "json".
+err = json.Unmarshal(data, &sb)
 ```
 
 
