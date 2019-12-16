@@ -156,7 +156,7 @@ func (r *Request) OverrideMimeType(mimetype string) {
 
 // Status2xx returns true if the request returned a 2xx status code.
 func (r *Request) Status2xx() bool {
-	if r.Status < 200 || req.Status > 299 {
+	if r.Status < 200 || r.Status > 299 {
 		return false
 	}
 	return true
@@ -164,7 +164,7 @@ func (r *Request) Status2xx() bool {
 
 // Status4xx returns true if the request returned a 4xx status code.
 func (r *Request) Status4xx() bool {
-	if r.Status < 400 || req.Status > 499 {
+	if r.Status < 400 || r.Status > 499 {
 		return false
 	}
 	return true
@@ -172,7 +172,7 @@ func (r *Request) Status4xx() bool {
 
 // Status5xx returns true if the request returned a 5xx status code.
 func (r *Request) Status5xx() bool {
-	if r.Status < 500 || req.Status > 599 {
+	if r.Status < 500 || r.Status > 599 {
 		return false
 	}
 	return true
