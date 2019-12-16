@@ -201,7 +201,9 @@ func (r *Request) Send(ctx context.Context, data interface{}) error {
 
 	if dt, ok := ctx.Deadline(); ok {
 		diff := time.Until(dt) / time.Millisecond
-		r.Set("timeout", diff)
+		if diff != 0 {
+			r.Set("timeout", diff)
+		}
 	}
 
 	errChan := make(chan error)
