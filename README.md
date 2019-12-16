@@ -55,10 +55,8 @@ if !req.Status2xx() {
 	return
 }
 
-data := []byte(req.ResponseText)
-
 // Unmarshal json response here using encoding/json. Otherwise set req.ResponseType = "json".
-err = json.Unmarshal(data, &sb)
+err = json.Unmarshal(req.ResponseBytes(), &sb)
 ```
 
 

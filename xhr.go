@@ -154,6 +154,11 @@ func (r *Request) OverrideMimeType(mimetype string) {
 	r.Call("overrideMimeType", mimetype)
 }
 
+// ResponseBytes returns the ResponseText as a slice of bytes.
+func (r *Request) ResponseBytes() []byte {
+	return []byte(r.ResponseText)
+}
+
 // Status2xx returns true if the request returned a 2xx status code.
 func (r *Request) Status2xx() bool {
 	if r.Status < 200 || r.Status > 299 {
