@@ -23,7 +23,6 @@ global.XMLHttpRequest = require('xhr2');
 ```go
 import (
 	"context"
-	"strings"
 
 	xhr "github.com/rocketlaunchr/gopherjs-xhr"
 	"github.com/gopherjs/gopherjs/js"
@@ -39,12 +38,8 @@ postBody := NewParams(js.M{"setting": 4})
 
 err := req.Send(context.Background(), postBody.String())
 if err != nil {
-	if strings.Contains(err.Error(), "net/http: fetch() failed") {
-		// Could not connect to internet
-		return
-	}
-
-	// Another type of error
+	// Could not connect to internet???
+	// Unfortunately XMLHttpRequest does not provide nuanced reasons.
 	return
 }
 
