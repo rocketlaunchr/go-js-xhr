@@ -70,12 +70,10 @@ const (
 	TextPlain = "text/plain"
 )
 
-var (
-	// MultipartFormData is a common "Content-Type" when transferring files in a POST request.
-	MultipartFormData = func(boundary string) string {
-		return "multipart/form-data;boundary=\"" + boundary + "\""
-	}
-)
+// MultipartFormData is a common "Content-Type" when transferring files in a POST request.
+var MultipartFormData = func(boundary string) string {
+	return "multipart/form-data;boundary=\"" + boundary + "\""
+}
 
 // Request wraps XMLHttpRequest objects. New instances have to be
 // created with NewRequest. Each instance may only be used for a
