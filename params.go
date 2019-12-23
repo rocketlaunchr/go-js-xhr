@@ -30,3 +30,8 @@ func (p *Params) Append(kv js.M) {
 func (p *Params) String() string {
 	return p.Call("toString").String()
 }
+
+// ToJSON will convert an object or map into a JSON string.
+func ToJSON(obj interface{}) string {
+	return js.Global.Get("JSON").Call("stringify", obj).String()
+}
