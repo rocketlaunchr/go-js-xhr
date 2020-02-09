@@ -33,11 +33,11 @@
 package xhr
 
 import (
-	"context"
 	"errors"
 	"time"
 
 	"github.com/gopherjs/gopherjs/js"
+	"github.com/rocketlaunchr/react/forks/context"
 	"honnef.co/go/js/util"
 )
 
